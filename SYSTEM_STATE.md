@@ -6,7 +6,7 @@
 
 **Current Iteration:** 1
 **Total Iterations:** 10
-**Current Phase:** Research
+**Current Phase:** Build
 
 ---
 
@@ -27,4 +27,4 @@ Research → Build → Test → QA Audit → [advance iteration] → Research �
 
 | Iteration | Phase | PR # | Notes |
 |---|---|---|---|
-| — | — | — | Pipeline not yet started |
+| 1 | Research | TBD | Initial design planning for DB and Backend foundation |
