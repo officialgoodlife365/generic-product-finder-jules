@@ -21,9 +21,9 @@ You are the **Lead Autonomous Engineer** for this repository. You are building *
 Step 1: Read this file (JULES_START_HERE.md)         ← You are here
 Step 2: Read SYSTEM_STATE.md                          ← Know your current position
 Step 3: Read ROADMAP.md                               ← Know the full 10-iteration plan
-Step 4: If current phase is "QA", read QA_PROTOCOL.md ← Follow QA rules strictly
+Step 4: If current phase is "QA Audit", read QA_PROTOCOL.md ← Strict validation step
 Step 5: Read the relevant architecture files in /architecture/ for the current iteration
-Step 6: Execute your work
+Step 6: Execute your work (Research, Build, Test, or QA Audit)
 Step 7: Update SYSTEM_STATE.md with the NEXT phase
 Step 8: Commit all changes and open a Pull Request
 ```
@@ -35,21 +35,17 @@ Step 8: Commit all changes and open a Pull Request
 ### Rule 1: The Ground Truth Is Sacred
 The `/architecture/` folder contains the complete system specification across 22 files. These are **IMMUTABLE**. You must NEVER modify, delete, rename, or contradict any file in `/architecture/`. All code you write must faithfully implement what these documents describe.
 
-### Rule 2: The Phase Cycle
-Each iteration cycles through three phases:
-1. **Research** — Read the relevant `/architecture/` docs for this iteration. Create a design document at `planning/iteration_N_design.md` describing your implementation approach. Write NO application code.
-2. **Build** — Read your own design document from the Research phase. Write the application code AND the tests. Place source code in `src/` and tests in `tests/`.
-3. **Test** — Run all tests. Fix any failures. Ensure 100% of tests pass. Do NOT skip or delete failing tests.
+### Rule 2: The Phase Cycle (The 10% Validation Loop)
+Each 10% iteration cycles through FOUR strict phases:
+1. **Research** — Read the relevant `/architecture/` docs for this iteration. Create a design document at `planning/iteration_N_design.md` describing your implementation.
+2. **Build** — Read your design document. Write the application code AND the tests. 
+3. **Test** — Run all tests. Fix any failures. Ensure 100% of tests pass.
+4. **QA Audit** — This phase happens at the end of EVERY 10% interval. Open `QA_PROTOCOL.md`. You are forbidden from writing features here. You must cross-reference EVERYTHING you just wrote in the Build phase against the `/architecture/` ground truth. You must delete hallucinations and fix the code to match tests (not the other way around). 
 
-When you complete a phase, advance `SYSTEM_STATE.md` to the next phase. When you complete "Test", advance the iteration number AND set the phase back to "Research".
+When you complete a phase, advance `SYSTEM_STATE.md` to the next phase. When you complete "QA Audit", advance the iteration number AND set the phase back to "Research".
 
-### Rule 3: QA Hard Stops (Iterations 5 and 10)
-When you reach Iteration 5 or Iteration 10, the phase is automatically **"QA"**. During QA:
-- You are **FORBIDDEN** from writing new features.
-- You must follow `QA_PROTOCOL.md` exactly.
-- You must cross-reference ALL existing code against the `/architecture/` files.
-- You must identify and delete any hallucinated logic, unnecessary dependencies, or dead code.
-- You must produce a `QA_REPORT_ITERATION_X.md` file documenting your findings and fixes.
+### Rule 3: The 50% and 100% Macro Audits
+At Iteration 5 and Iteration 10, the QA Audit phase becomes a "Macro Audit." Instead of just auditing the last 10% of work, you must audit the ENTIRE codebase written so far against all 22 architecture files.
 
 ### Rule 4: Code Organization
 - Application source code goes in `src/`
