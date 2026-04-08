@@ -6,7 +6,7 @@
 
 **Current Iteration:** 1
 **Total Iterations:** 10
-**Current Phase:** Build
+**Current Phase:** Test
 
 ---
 
@@ -28,3 +28,4 @@ Research → Build → Test → QA Audit → [advance iteration] → Research �
 | Iteration | Phase | PR # | Notes |
 |---|---|---|---|
 | 1 | Research | TBD | Initial design planning for DB and Backend foundation |
+| 1 | Build | TBD | Implement database schemas, Express.js app routing, and migration tools |
