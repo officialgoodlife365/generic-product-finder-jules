@@ -5,6 +5,12 @@ const HackerNewsModule = require('./adapters/hackernews');
 const YouTubeModule = require('./adapters/youtube');
 const QuoraModule = require('./adapters/quora');
 const GenericForumModule = require('./adapters/generic_forum');
+const GoogleTrendsModule = require('./adapters/google_trends');
+const ExplodingTopicsModule = require('./adapters/exploding_topics');
+const GovRegulatoryModule = require('./adapters/gov_regulatory');
+const ProductHuntG2Module = require('./adapters/producthunt_g2');
+const AmazonReviewsModule = require('./adapters/amazon_reviews');
+const UpworkFiverrModule = require('./adapters/upwork_fiverr');
 
 class SourceModuleManager {
   constructor() {
@@ -13,7 +19,13 @@ class SourceModuleManager {
       'hackernews': HackerNewsModule,
       'youtube_comments': YouTubeModule,
       'quora': QuoraModule,
-      'generic_forum': GenericForumModule
+      'generic_forum': GenericForumModule,
+      'google_trends': GoogleTrendsModule,
+      'exploding_topics': ExplodingTopicsModule,
+      'gov_regulatory': GovRegulatoryModule,
+      'producthunt_g2': ProductHuntG2Module,
+      'amazon_reviews': AmazonReviewsModule,
+      'upwork_fiverr': UpworkFiverrModule
     };
   }
 
