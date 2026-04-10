@@ -1,6 +1,7 @@
 const SourceModuleManager = require('../source_modules/SourceModuleManager');
 const db = require('../../db');
 const { getTriangulationStatus, calculateMaturityStage, createFingerprint } = require('./utils');
+const logger = require('../../utils/logger');
 
 class DiscoveryEngine {
   constructor() {
@@ -22,7 +23,7 @@ class DiscoveryEngine {
    */
   async runPhase1A(niches, keywords, options = {}) {
     this.runStats.startTime = Date.now();
-    console.log(`[DiscoveryEngine] Starting Phase 1A for ${niches.length} niches...`);
+    logger.info(`[DiscoveryEngine] Starting Phase 1A for ${niches.length} niches...`);
 
     // 1. Run all enabled modules
     const rawSignals = await SourceModuleManager.runDiscoveryPhase1A(niches, keywords, null, options);
@@ -30,7 +31,7 @@ class DiscoveryEngine {
 
     // 2. Deduplicate signals by problem_fingerprint
     const dedupedSignals = this.deduplicateSignals(rawSignals);
-    console.log(`[DiscoveryEngine] Phase 1A complete. Extracted ${dedupedSignals.length} unique problems.`);
+    logger.info(`[DiscoveryEngine] Phase 1A complete. Extracted ${dedupedSignals.length} unique problems.`);
 
     // Proceed to Phase 1B
     return this.runPhase1B(dedupedSignals);
@@ -85,7 +86,7 @@ class DiscoveryEngine {
    * Phase 1B: Deep Extraction & Filtering
    */
   async runPhase1B(dedupedSignals) {
-    console.log(`[DiscoveryEngine] Starting Phase 1B for ${dedupedSignals.length} problems...`);
+    logger.info(`[DiscoveryEngine] Starting Phase 1B for ${dedupedSignals.length} problems...`);
     const finalizedOpportunities = [];
 
     for (const signalGroup of dedupedSignals) {
@@ -136,7 +137,7 @@ class DiscoveryEngine {
    * Saves opportunities, leads, and run logs to the database.
    */
   async persistResults(opportunities) {
-    console.log(`[DiscoveryEngine] Persisting ${opportunities.length} opportunities to the database...`);
+    logger.info(`[DiscoveryEngine] Persisting ${opportunities.length} opportunities to the database...`);
 
     const client = await db.pool.connect();
 
@@ -214,10 +215,10 @@ class DiscoveryEngine {
       await client.query('UPDATE discovery_runs SET leads_captured = $1 WHERE id = $2', [this.runStats.leadsCaptured, this.runId]);
 
       await client.query('COMMIT');
-      console.log(`[DiscoveryEngine] Database persistence completed.`);
+      logger.info(`[DiscoveryEngine] Database persistence completed.`);
     } catch (err) {
       await client.query('ROLLBACK');
-      console.error(`[DiscoveryEngine] Database persistence failed:`, err);
+      logger.error(`[DiscoveryEngine] Database persistence failed: ${err.message}`);
       throw err;
     } finally {
       client.release();

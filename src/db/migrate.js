@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const db = require('./index');
+const logger = require('../utils/logger');
 
 async function migrate() {
-  console.log('Starting database migrations...');
+  logger.info('Starting database migrations...');
 
   const migrationsDir = path.join(__dirname, 'migrations');
   const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
@@ -24,7 +25,7 @@ async function migrate() {
       const { rows } = await client.query('SELECT name FROM migrations WHERE name = $1', [file]);
 
       if (rows.length === 0) {
-        console.log(`Executing migration: ${file}`);
+        logger.info(`Executing migration: ${file}`);
         const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
 
         await client.query('BEGIN');
@@ -32,20 +33,20 @@ async function migrate() {
           await client.query(sql);
           await client.query('INSERT INTO migrations (name) VALUES ($1)', [file]);
           await client.query('COMMIT');
-          console.log(`Migration ${file} completed.`);
+          logger.info(`Migration ${file} completed.`);
         } catch (err) {
           await client.query('ROLLBACK');
-          console.error(`Migration ${file} failed:`, err);
+          logger.error(`Migration ${file} failed: ${err.message}`);
           throw err;
         }
       } else {
-        console.log(`Skipping migration ${file} (already executed).`);
+        logger.info(`Skipping migration ${file} (already executed).`);
       }
     }
 
-    console.log('All migrations completed successfully.');
+    logger.info('All migrations completed successfully.');
   } catch (error) {
-    console.error('Migration error:', error);
+    logger.error(`Migration error: ${error.message}`);
     process.exit(1);
   } finally {
     client.release();

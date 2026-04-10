@@ -1,4 +1,5 @@
 const db = require('../../db');
+const logger = require('../../utils/logger');
 
 const RedditModule = require('./adapters/reddit');
 const HackerNewsModule = require('./adapters/hackernews');
@@ -80,7 +81,7 @@ class SourceModuleManager {
           [signals.length, mod.moduleName]
         );
       } catch (err) {
-        console.error(`Error in module ${mod.moduleName}:`, err.message);
+        logger.error(`Error in module ${mod.moduleName}: ${err.message}`);
         await db.query(
           `UPDATE source_registry SET last_run_date = CURRENT_TIMESTAMP, last_run_status = 'error' WHERE module_name = $1`,
           [mod.moduleName]
@@ -100,7 +101,7 @@ class SourceModuleManager {
           const signals = await mod.scan(niches, keywords, dateRange, options);
           allSignals.push(...signals);
         } catch (err) {
-          console.error(`Error in module ${mod.moduleName}:`, err.message);
+          logger.error(`Error in module ${mod.moduleName}: ${err.message}`);
         }
       }
     }

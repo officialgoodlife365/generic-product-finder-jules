@@ -56,7 +56,8 @@ class GovRegulatoryModule extends BaseSourceModule {
         reg.source_url
       ]);
     } catch (e) {
-      console.error(`GovRegulatoryModule failed to save calendar event:`, e.message);
+      const logger = require('../../../utils/logger');
+      logger.error(`GovRegulatoryModule failed to save calendar event: ${e.message}`);
     }
   }
 
