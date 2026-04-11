@@ -92,13 +92,19 @@ class LeadPipeline {
         conversionType = interactionType;
       }
 
-      if (newTemp !== currentTemp) {
+      // If temperature changed or we got a new message, update the lead
+      if (newTemp !== currentTemp || message) {
         await client.query(`
           UPDATE warm_leads
           SET lead_temperature = $1, response = $2, converted = $3, conversion_type = $4, updated_at = CURRENT_TIMESTAMP
           WHERE id = $5
         `, [newTemp, message, converted, conversionType, leadId]);
-        logger.info(`[LeadPipeline] Lead ${leadId} upgraded to ${newTemp}`);
+
+        if (newTemp !== currentTemp) {
+          logger.info(`[LeadPipeline] Lead ${leadId} upgraded to ${newTemp}`);
+        } else {
+          logger.info(`[LeadPipeline] Lead ${leadId} updated with new response`);
+        }
       }
     } finally {
       client.release();

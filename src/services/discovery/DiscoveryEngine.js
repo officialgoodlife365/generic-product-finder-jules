@@ -22,7 +22,14 @@ class DiscoveryEngine {
    * @param {Object} keywords Dictionary of keywords grouped by type (frustration, demand, etc.)
    */
   async runPhase1A(niches, keywords, options = {}) {
-    this.runStats.startTime = Date.now();
+    this.runStats = {
+      startTime: Date.now(),
+      totalSignalsFound: 0,
+      triangulatedCount: 0,
+      watchListCount: 0,
+      problemsAdvanced: 0,
+      leadsCaptured: 0
+    };
     logger.info(`[DiscoveryEngine] Starting Phase 1A for ${niches.length} niches...`);
 
     // 1. Run all enabled modules
