@@ -6,7 +6,7 @@
 
 **Current Iteration:** 7
 **Total Iterations:** 10
-**Current Phase:** Build
+**Current Phase:** Test
 
 ---
 
@@ -52,3 +52,4 @@ Research → Build → Test → QA Audit → [advance iteration] → Research �
 | 6 | Test | TBD | Validated mathematical scoring accuracy, kill signals, and lead capture logic via 100% passing test suite |
 | 6 | QA Audit | TBD | Verified implementation against 04, 05a, and 05b. Created QA report indicating pass. |
 | 7 | Research | TBD | Designed architecture for the Validation Framework and Legal Risk Engine |
+| 7 | Build | TBD | Implemented ValidationService and LegalRiskEngine to compute Moat, CAC, and Liability constraints |
