@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const logger = require('../utils/logger');
 const { Buffer } = require('buffer');
+const AntiFraudEngine = require('../services/defense/AntiFraudEngine');
 
 // POST /api/payments/webhook
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -116,21 +117,31 @@ async function handleSubscriptionCanceled(event) {
 async function handleRefundCompleted(event) {
   const data = event.data?.object || event.data;
   const txnId = data.payment_intent || data.charge || data.id;
+  const email = data.customer_email || data.receipt_email || data.attributes?.user_email;
 
   logger.warn(`[Payments Webhook] Refund processed for transaction: ${txnId}`);
   await db.query(`
     UPDATE orders SET status = 'refunded', refunded = TRUE, refund_date = CURRENT_TIMESTAMP WHERE processor_txn_id = $1
   `, [txnId]);
+
+  if (email) {
+    await AntiFraudEngine.checkSerialRefunder(email);
+  }
 }
 
 async function handleDispute(event) {
   const data = event.data?.object || event.data;
   const txnId = data.payment_intent || data.charge;
+  const email = data.customer_email || data.receipt_email || data.attributes?.user_email;
 
   logger.error(`[Payments Webhook] Chargeback/Dispute filed for transaction: ${txnId}`);
   await db.query(`
     UPDATE orders SET status = 'disputed' WHERE processor_txn_id = $1
   `, [txnId]);
+
+  if (email) {
+    await AntiFraudEngine.handleChargeback(email, txnId);
+  }
 }
 
 module.exports = router;
