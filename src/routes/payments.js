@@ -10,11 +10,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   logger.info(`[Payments Webhook] Received event payload`);
 
   try {
-    // SECURITY TODO: In production, verify HMAC signature against a processor secret
-    // const signature = req.headers['stripe-signature'] || req.headers['x-lemon-squeezy-signature'];
-    // const payloadStr = req.body.toString('utf8');
-    // if (!verifySignature(payloadStr, signature, process.env.WEBHOOK_SECRET)) throw new Error('Invalid signature');
-
     const event = typeof req.body === 'string' || Buffer.isBuffer(req.body)
       ? JSON.parse(req.body.toString('utf8'))
       : req.body;
