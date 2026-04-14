@@ -6,7 +6,7 @@ class RevenueOptimizer {
    * @returns {Object} min, max, and suggested price (psychological pricing).
    */
   calculatePriceAnchor(professionalPrice) {
-    if (!professionalPrice || professionalPrice <= 0) return null;
+    if (!professionalPrice || professionalPrice <= 0 || professionalPrice < 10) return null;
 
     const minRaw = professionalPrice * 0.10;
     const maxRaw = professionalPrice * 0.20;
@@ -24,7 +24,7 @@ class RevenueOptimizer {
     }
 
     // Edge case if 10% is below 47, we just use a baseline
-    if (suggestedPrice < minRaw) suggestedPrice = Math.floor(minRaw) - 3;
+    if (suggestedPrice < minRaw) suggestedPrice = Math.max(Math.floor(minRaw) - 3, 7);
     if (suggestedPrice <= 0) suggestedPrice = 27;
 
     return {
