@@ -8,13 +8,21 @@ class BlueprintGenerator {
   generateLaunchBlueprint(opportunityData, revenueArchitecture, legalAssessment) {
     if (!opportunityData || !revenueArchitecture) return null;
 
+    // Sanitize values
+    const safePrice = (revenueArchitecture.suggested_price > 0 && !isNaN(revenueArchitecture.suggested_price))
+      ? revenueArchitecture.suggested_price
+      : 97;
+    const safeLtv = (!isNaN(revenueArchitecture.ltv) && revenueArchitecture.ltv >= 0)
+      ? revenueArchitecture.ltv
+      : 0;
+
     return {
       opportunity: opportunityData.name,
       persona: opportunityData.target_persona,
       monetization: {
-        price_anchor: revenueArchitecture.suggested_price || 97,
+        price_anchor: safePrice,
         funnel: revenueArchitecture.funnel,
-        estimated_ltv: revenueArchitecture.ltv || 0
+        estimated_ltv: safeLtv
       },
       legal_and_risk: {
         risk_score: legalAssessment?.risk_score || 0,
