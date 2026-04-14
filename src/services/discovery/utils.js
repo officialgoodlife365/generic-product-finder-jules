@@ -8,6 +8,9 @@
  * @returns {string} 'unverified', 'watch_list', 'triangulated', or 'corroborated'
  */
 function getTriangulationStatus(categories) {
+  if (!categories || (typeof categories.size === 'undefined' && typeof categories.length === 'undefined')) {
+    return 'unverified';
+  }
   const size = categories instanceof Set ? categories.size : categories.length;
 
   if (size === 0) return 'unverified';
@@ -27,9 +30,12 @@ function getTriangulationStatus(categories) {
  * @returns {string} 'emerging', 'growing', 'mature', 'declining'
  */
 function calculateMaturityStage(signalCount, totalEngagement) {
-  if (signalCount < 3 && totalEngagement < 50) return 'emerging';
-  if (signalCount >= 3 && signalCount < 10 && totalEngagement >= 50) return 'growing';
-  if (signalCount >= 10 && totalEngagement > 200) return 'mature';
+  const sCount = isNaN(parseInt(signalCount)) ? 0 : parseInt(signalCount);
+  const tEng = isNaN(parseInt(totalEngagement)) ? 0 : parseInt(totalEngagement);
+
+  if (sCount < 3 && tEng < 50) return 'emerging';
+  if (sCount >= 3 && sCount < 10 && tEng >= 50) return 'growing';
+  if (sCount >= 10 && tEng > 200) return 'mature';
   // Declining requires historical data (e.g. signal velocity < 0), handled separately if needed.
   return 'emerging';
 }
@@ -40,6 +46,7 @@ function calculateMaturityStage(signalCount, totalEngagement) {
  * @returns {string}
  */
 function createFingerprint(name) {
+  if (!name || typeof name !== 'string') return 'unknown_problem';
   return name.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50);
 }
 

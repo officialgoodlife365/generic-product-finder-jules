@@ -109,7 +109,10 @@ class ScoringEngine {
   findBestEvidence(criterion, score, evidenceData) {
     // In a real system, NLP matches specific evidence strings to criteria.
     // For MVP, we match by category or pick the first available raw signal.
-    const data = evidenceData[0];
+    if (!Array.isArray(evidenceData) || evidenceData.length === 0) return null;
+
+    // Filter out undefined/null objects inside the array safely
+    const data = evidenceData.find(item => item !== undefined && item !== null);
     if (!data) return null;
 
     return {

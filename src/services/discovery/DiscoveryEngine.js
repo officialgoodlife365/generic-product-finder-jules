@@ -51,6 +51,7 @@ class DiscoveryEngine {
     const grouped = new Map();
 
     for (const signal of rawSignals) {
+      if (!signal) continue;
       const fp = signal.problem_fingerprint || createFingerprint(signal.problem_name);
 
       if (!grouped.has(fp)) {

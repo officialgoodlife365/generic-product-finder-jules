@@ -113,7 +113,8 @@ class LeadPipeline {
 
   calculateLeadScore(engagementScore, influenceTier, datePosted, painIntensity) {
     // Engagement Score = min(engagement_score / 100, 1.0) × 100
-    const engagement = Math.min((engagementScore || 0) / 100, 1.0) * 100;
+    const rawEngagement = isNaN(parseFloat(engagementScore)) ? 0 : parseFloat(engagementScore);
+    const engagement = Math.min(rawEngagement / 100, 1.0) * 100;
 
     // Influence Multiplier = normal:25 / active:50 / influencer:75 / moderator:100
     const influenceMap = { normal: 25, active: 50, influencer: 75, moderator: 100 };
@@ -121,8 +122,11 @@ class LeadPipeline {
 
     // Recency Score = (1 - days_since_post/365) × 100 (0 if > 365 days)
     const postDate = new Date(datePosted);
-    const daysSince = Math.max(0, (Date.now() - postDate.getTime()) / (1000 * 60 * 60 * 24));
-    const recency = daysSince > 365 ? 0 : (1 - (daysSince / 365)) * 100;
+    let recency = 0;
+    if (!isNaN(postDate.getTime())) {
+      const daysSince = Math.max(0, (Date.now() - postDate.getTime()) / (1000 * 60 * 60 * 24));
+      recency = daysSince > 365 ? 0 : (1 - (daysSince / 365)) * 100;
+    }
 
     // Pain Intensity = linked opportunity's pain_intensity score × 20
     const pain = painIntensity * 20;
