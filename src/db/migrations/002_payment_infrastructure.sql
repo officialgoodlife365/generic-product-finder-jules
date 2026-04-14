@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS orders (
     id                  SERIAL PRIMARY KEY,
     buyer_email         TEXT NOT NULL,
-    opportunity_id      INTEGER REFERENCES opportunities(id),
+    opportunity_id      INTEGER REFERENCES opportunities(id) ON DELETE SET NULL,
     product_name        TEXT NOT NULL,
     product_tier        TEXT DEFAULT 'FE',  -- 'FE', 'bump', 'OTO1', 'OTO2', 'subscription'
     amount              DECIMAL(10,2) NOT NULL,

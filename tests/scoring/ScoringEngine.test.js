@@ -77,6 +77,52 @@ describe('ScoringEngine', () => {
     expect(result.kill_reason).toBe('Willingness to Pay = 0');
   });
 
+  describe('Testing Cycle 1: Input Validation & Fuzzing', () => {
+    it('gracefully handles null or missing opportunity', () => {
+      const result = ScoringEngine.calculateScore({}, { pain_intensity: 5 });
+      expect(result.raw_score).toBe(5);
+      expect(result.kill_reason).toBe('Legal Risk <= 1 (Unacceptable liability)');
+    });
+
+    it('clamps massive positive integers and ignores negatives', () => {
+      const opp = { maturity_stage: 'growing' };
+      const scores = {
+        pain_intensity: 99999, // Should clamp to 5
+        willingness_to_pay: -50, // Should clamp to 0
+        legal_risk: 5,
+        solo_feasibility: 5,
+        content_buildability: 5,
+        market_size: 5,
+        competition_quality: 5,
+        audience_accessibility: 5,
+        passive_income_ratio: 5
+      };
+
+      const result = ScoringEngine.calculateScore(opp, scores, []);
+      // pain_intensity clamps to 5
+      // willingness_to_pay clamps to 0
+      // But WTP = 0 is a kill signal
+      expect(result.kill_reason).toBe('Willingness to Pay = 0');
+
+      // Check math manually on raw_score clamp
+      // 5 (pain) + 0 (wtp) + 5*7 (others) = 40
+      expect(result.raw_score).toBe(40);
+    });
+
+    it('handles NaN gracefully', () => {
+      const opp = {};
+      const scores = {
+        pain_intensity: NaN,
+        legal_risk: 'string_value'
+      };
+
+      const result = ScoringEngine.calculateScore(opp, scores, []);
+      // Math.min(Math.max(NaN, 0), 5) is NaN, we need to assert that the engine doesn't return NaN for the total score
+      expect(isNaN(result.raw_score)).toBe(false);
+      expect(result.raw_score).toBe(0);
+    });
+  });
+
   it('should persist scores and evidence to the database', async () => {
     const mockResult = {
       raw_score: 60,

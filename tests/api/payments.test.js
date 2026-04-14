@@ -119,4 +119,41 @@ describe('Payments API Webhooks', () => {
     expect(response.text).toContain('Webhook Error: DB connection failed');
   });
 
+  describe('Testing Cycle 3: Fuzzing Webhook Endpoints', () => {
+    it('gracefully handles completely empty payloads', async () => {
+      const response = await request(app)
+        .post('/payments/webhook')
+        .set('Content-Type', 'application/json')
+        .send({});
+
+      // Should return 200, but hit the "Unhandled event type" log branch.
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ received: true });
+    });
+
+    it('gracefully handles missing data objects', async () => {
+      // payload missing 'data.object' structure
+      const payload = { type: 'payment.completed' };
+
+      const response = await request(app)
+        .post('/payments/webhook')
+        .set('Content-Type', 'application/json')
+        .send(payload);
+
+      // Should hit catch block or safely handle undefined chains without crashing express app
+      // Because `handlePaymentCompleted` expects `event.data`, it will read undefined
+      // and amount will equal NaN, triggering an SQL fail, or crashing.
+      expect(response.status).toBe(400); // DB failure or TypeError caught safely
+    });
+
+    it('gracefully handles malformed string payloads via raw body buffer parsing', async () => {
+      const response = await request(app)
+        .post('/payments/webhook')
+        .set('Content-Type', 'application/json')
+        .send('{"invalid_json": true'); // Malformed JSON string
+
+      expect(response.status).toBe(400);
+    });
+  });
+
 });

@@ -39,7 +39,9 @@ class ScoringEngine {
       const config = this.criteriaConfig[criterion];
       if (!config) continue;
 
-      const validatedScore = Math.min(Math.max(scoreVal, 0), 5); // clamp 0-5
+      // Fix for NaN fuzzer: Default to 0 if invalid
+      const parsedVal = isNaN(parseFloat(scoreVal)) ? 0 : parseFloat(scoreVal);
+      const validatedScore = Math.min(Math.max(parsedVal, 0), 5); // clamp 0-5
       rawScore += validatedScore;
 
       if (config.isCore) {
@@ -80,14 +82,16 @@ class ScoringEngine {
   }
 
   checkKillSignals(scores, maturityStage) {
-    if ((scores.legal_risk || 0) <= 1) return 'Legal Risk <= 1 (Unacceptable liability)';
-    if ((scores.solo_feasibility || 0) <= 1) return 'Solo Feasibility <= 1 (Requires team)';
-    if ((scores.content_buildability || 0) <= 1) return 'Content Buildability <= 1 (Requires licensed professional)';
-    if ((scores.willingness_to_pay || 0) === 0) return 'Willingness to Pay = 0';
-    if ((scores.market_size || 0) <= 1) return 'Market Size <= 1 (<1,000 buyers)';
-    if ((scores.competition_quality || 0) === 0) return 'Competition Quality = 0 (Dominant incumbents)';
-    if ((scores.audience_accessibility || 0) <= 1) return 'Audience Accessibility <= 1 (Cannot reach buyers)';
-    if ((scores.passive_income_ratio || 0) <= 1) return 'Passive Income Ratio <= 1 (Doesn\'t scale)';
+    const parseScore = (val) => isNaN(parseFloat(val)) ? 0 : Math.min(Math.max(parseFloat(val), 0), 5);
+
+    if (parseScore(scores.legal_risk) <= 1) return 'Legal Risk <= 1 (Unacceptable liability)';
+    if (parseScore(scores.solo_feasibility) <= 1) return 'Solo Feasibility <= 1 (Requires team)';
+    if (parseScore(scores.content_buildability) <= 1) return 'Content Buildability <= 1 (Requires licensed professional)';
+    if (parseScore(scores.willingness_to_pay) === 0) return 'Willingness to Pay = 0';
+    if (parseScore(scores.market_size) <= 1) return 'Market Size <= 1 (<1,000 buyers)';
+    if (parseScore(scores.competition_quality) === 0) return 'Competition Quality = 0 (Dominant incumbents)';
+    if (parseScore(scores.audience_accessibility) <= 1) return 'Audience Accessibility <= 1 (Cannot reach buyers)';
+    if (parseScore(scores.passive_income_ratio) <= 1) return 'Passive Income Ratio <= 1 (Doesn\'t scale)';
     if (maturityStage === 'declining') return 'Maturity Stage is Declining';
 
     return null;

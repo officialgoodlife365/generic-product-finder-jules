@@ -19,6 +19,24 @@ describe('BlueprintGenerator', () => {
       expect(blueprint.monetization.estimated_ltv).toBe(350);
       expect(blueprint.legal_and_risk.tier).toBe('B');
     });
+
+    describe('Testing Cycle 4: E2E Edge Cases & State Bleeding', () => {
+      it('gracefully generates partial blueprints with missing legal or revenue structures', () => {
+        const oppData = { name: 'Edge Opp' };
+
+        // Simulating an opportunity where Revenue/Legal data failed to compute, leaving objects empty or null
+        const revArch = { suggested_price: null, funnel: null, ltv: NaN };
+        const legal = null;
+
+        const blueprint = BlueprintGenerator.generateLaunchBlueprint(oppData, revArch, legal);
+
+        expect(blueprint.opportunity).toBe('Edge Opp');
+        expect(blueprint.monetization.price_anchor).toBe(97); // Base fallback
+        expect(blueprint.monetization.estimated_ltv).toBe(0); // NaN fallback is not explicit, but js converts NaN || 0 to 0 (Actually, it does not. We need to assert logic handles NaN).
+        expect(blueprint.legal_and_risk.risk_score).toBe(0); // Null fallback
+        expect(blueprint.legal_and_risk.tier).toBe('A'); // Null fallback
+      });
+    });
   });
 
   describe('rankPortfolio', () => {
