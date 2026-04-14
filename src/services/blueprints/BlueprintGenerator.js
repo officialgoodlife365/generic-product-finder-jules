@@ -49,22 +49,25 @@ class BlueprintGenerator {
     if (!opportunities || !Array.isArray(opportunities)) return [];
 
     const scoredOps = opportunities.map(op => {
+      // Safely default if op is null/primitive
+      const safeOp = (op && typeof op === 'object') ? op : {};
+
       // Normalize values assuming standard scales (Velocity 1-5, Legal Risk 0-5 inverted, passivity 0-100, etc)
       // This is a heuristic simulation representation of the scoring formula.
 
-      const valScoreWeight = (op.validated_score || 0) * 0.30;
-      const velocityWeight = ((op.velocity_score || 0) / 5) * 100 * 0.25;
-      const warmLeadWeight = Math.min((op.hot_lead_count || 0) * 5, 100) * 0.20; // Cap leads at 100 for normalization
-      const passivityWeight = (op.passive_ratio || 0) * 0.15;
+      const valScoreWeight = (safeOp.validated_score || 0) * 0.30;
+      const velocityWeight = ((safeOp.velocity_score || 0) / 5) * 100 * 0.25;
+      const warmLeadWeight = Math.min((safeOp.hot_lead_count || 0) * 5, 100) * 0.20; // Cap leads at 100 for normalization
+      const passivityWeight = (safeOp.passive_ratio || 0) * 0.15;
 
       // Legal Simplicity: Lower risk is better. Score 0 = 100%, Score 5 = 0%
-      const legalSimplicity = 100 - ((op.legal_risk_score || 0) * 20);
+      const legalSimplicity = 100 - ((safeOp.legal_risk_score || 0) * 20);
       const legalWeight = legalSimplicity * 0.10;
 
       const finalRankScore = valScoreWeight + velocityWeight + warmLeadWeight + passivityWeight + legalWeight;
 
       return {
-        ...op,
+        ...safeOp,
         finalRankScore: parseFloat(finalRankScore.toFixed(2))
       };
     });
