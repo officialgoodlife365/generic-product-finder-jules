@@ -1,8 +1,15 @@
 {
-  "name": "project-root",
-  "private": true,
+  "name": "generic-product-finder",
+  "version": "1.0.0",
+  "description": "AI-powered system that discovers, scores, validates, and blueprints real-world problems for solo entrepreneurs to monetize with digital products",
   "workspaces": [
     "backend",
     "frontend"
-  ]
+  ],
+  "scripts": {
+    "start:backend": "npm run start --workspace=backend",
+    "test:backend": "npm run test --workspace=backend",
+    "start:frontend": "npm run dev --workspace=frontend",
+    "test:frontend": "npm run test --workspace=frontend"
+  }
 }
