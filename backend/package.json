@@ -1,27 +1,29 @@
 {
-  "name": "generic-product-finder",
+  "name": "generic-product-finder-backend",
   "version": "1.0.0",
-  "description": "AI-powered product discovery and blueprinting engine",
-  "main": "index.js",
+  "description": "Backend API for Generic Product Finder",
+  "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest --passWithNoTests",
-    "lint": "eslint ."
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "migrate": "node src/db/migrate.js"
   },
   "dependencies": {
-    "axios": "^1.7.9",
-    "cheerio": "^1.2.0",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "pg": "^8.20.0"
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "pg": "^8.11.3"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "axios-mock-adapter": "^2.1.0",
-    "eslint": "^10.2.0",
+    "axios-mock-adapter": "^1.22.0",
     "jest": "^29.7.0",
-    "nodemon": "^3.1.9",
-    "supertest": "^7.2.2"
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
   }
 }
