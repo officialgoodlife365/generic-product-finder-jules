@@ -1,15 +1,10 @@
 {
-<<<<<<< HEAD
   "name": "generic-product-finder",
   "version": "1.0.0",
-=======
-  "name": "project-root",
->>>>>>> e68ecef (feat: initialize frontend react foundation on monorepo architecture)
   "private": true,
   "workspaces": [
     "backend",
     "frontend"
-<<<<<<< HEAD
   ],
   "scripts": {
     "start:backend": "npm run start --workspace=backend",
@@ -17,7 +12,4 @@
     "start:frontend": "npm run dev --workspace=frontend",
     "test:frontend": "npm run test --workspace=frontend"
   }
-=======
-  ]
->>>>>>> e68ecef (feat: initialize frontend react foundation on monorepo architecture)
 }
