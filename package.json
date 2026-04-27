@@ -12,5 +12,9 @@
     "test:backend": "npm run test --workspace=backend",
     "start:frontend": "npm run dev --workspace=frontend",
     "test:frontend": "npm run test --workspace=frontend"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3"
   }
 }
