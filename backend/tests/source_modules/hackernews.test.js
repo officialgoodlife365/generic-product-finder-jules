@@ -15,21 +15,18 @@ describe('HackerNewsModule', () => {
   });
 
   it('should scan and map HN results correctly', async () => {
-    const mockResponse = {
-      hits: [
-        {
-          objectID: '12345',
-          title: 'Ask HN: How do you handle compliance?',
-          story_text: 'Looking for a tool to help with SOC 2.',
-          author: 'hn_user',
-          points: 150,
-          num_comments: 40,
-          created_at: '2023-01-01T00:00:00Z'
-        }
-      ]
-    };
+    // Firebase API doesn't use search, it uses topstories and items
+    mock.onGet('/topstories.json').reply(200, [12345]);
 
-    mock.onGet(/search/).reply(200, mockResponse);
+    mock.onGet('/item/12345.json').reply(200, {
+      id: 12345,
+      title: 'Ask HN: How do you handle compliance?',
+      text: 'Looking for a tool to help with SOC 2.',
+      by: 'hn_user',
+      score: 150,
+      descendants: 40,
+      time: 1672531200 // 2023-01-01T00:00:00Z
+    });
 
     const results = await module.scan(['compliance'], { demand: ['tool'] });
 

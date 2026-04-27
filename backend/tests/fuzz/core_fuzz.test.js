@@ -47,11 +47,11 @@ describe('Automated 15-Cycle Fuzz Testing', () => {
     expect(result.kill_reason === null || typeof result.kill_reason === 'string').toBe(true);
   });
 
-  it('Fuzz DiscoveryEngine fingerprinting with giant buffers', () => {
+  it('Fuzz DiscoveryEngine fingerprinting with giant buffers', async () => {
     // Generate a 100,000 character string simulating a scraped document dump
     const massiveString = generateFuzzString(100000);
 
-    const deduped = DiscoveryEngine.deduplicateSignals([{
+    const deduped = await DiscoveryEngine.deduplicateSignals([{
       problem_name: massiveString,
       source_category: 'reddit',
       engagement_score: prng(-100, 1000)

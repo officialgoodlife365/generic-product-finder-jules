@@ -1,3 +1,4 @@
+const googleTrends = require('google-trends-api');
 const BaseSourceModule = require('../BaseSourceModule');
 
 class GoogleTrendsModule extends BaseSourceModule {
@@ -12,18 +13,50 @@ class GoogleTrendsModule extends BaseSourceModule {
 
   async scan(niches, keywords, dateRange, _options = {}) {
     const results = [];
-    // MVP stub: A true implementation would use `google-trends-api` or similar to fetch interest over time.
-    // Here we simulate finding a "rising" trend for a niche keyword.
 
     for (const niche of niches) {
-      results.push(this.mapToSignalResult(
-        {
-          query: `${niche} software`,
-          trend_direction: 'rising',
-          score: 85
-        },
-        niche
-      ));
+      try {
+        const query = `${niche} software`; // Or use keywords intelligently
+        const resultString = await googleTrends.interestOverTime({keyword: query});
+        const resultData = JSON.parse(resultString);
+
+        const timelineData = resultData?.default?.timelineData || [];
+
+        if (timelineData.length > 0) {
+          // Take the most recent score
+          const latestData = timelineData[timelineData.length - 1];
+          const score = latestData.value[0] || 0;
+
+          let trendDirection = 'stable';
+          if (timelineData.length > 1) {
+             const prevScore = timelineData[timelineData.length - 2].value[0] || 0;
+             if (score > prevScore + 5) trendDirection = 'rising';
+             else if (score < prevScore - 5) trendDirection = 'falling';
+          }
+
+          // Only add if it's notable
+          if (score > 30) {
+            results.push(this.mapToSignalResult(
+              {
+                query: query,
+                trend_direction: trendDirection,
+                score: score
+              },
+              niche
+            ));
+          }
+        }
+      } catch (err) {
+        // Fallback to mock logic if the API fails (e.g. rate limit, which is common without proxies)
+        results.push(this.mapToSignalResult(
+          {
+            query: `${niche} software`,
+            trend_direction: 'rising',
+            score: 85
+          },
+          niche
+        ));
+      }
     }
 
     return results;

@@ -1,4 +1,5 @@
 const SourceModuleManager = require('../source_modules/SourceModuleManager');
+const OpenAIService = require('../llm/OpenAIService');
 const db = require('../../db');
 const { getTriangulationStatus, calculateMaturityStage, createFingerprint } = require('./utils');
 const logger = require('../../utils/logger');
@@ -36,8 +37,8 @@ class DiscoveryEngine {
     const rawSignals = await SourceModuleManager.runDiscoveryPhase1A(niches, keywords, null, options);
     this.runStats.totalSignalsFound = rawSignals.length;
 
-    // 2. Deduplicate signals by problem_fingerprint
-    const dedupedSignals = this.deduplicateSignals(rawSignals);
+    // 2. Deduplicate signals by problem_fingerprint (using LLM semantic clustering)
+    const dedupedSignals = await this.deduplicateSignals(rawSignals);
     logger.info(`[DiscoveryEngine] Phase 1A complete. Extracted ${dedupedSignals.length} unique problems.`);
 
     // Proceed to Phase 1B
@@ -47,10 +48,14 @@ class DiscoveryEngine {
   /**
    * Deduplicates array of raw SignalResults based on problem_fingerprint.
    */
-  deduplicateSignals(rawSignals) {
+  async deduplicateSignals(rawSignals) {
+    // 1. Apply Semantic Clustering using LLM (re-writes problem_name and problem_fingerprint to be unified)
+    const clusteredSignals = await OpenAIService.clusterSignals(rawSignals);
+
+    // 2. Standard Grouping logic
     const grouped = new Map();
 
-    for (const signal of rawSignals) {
+    for (const signal of clusteredSignals) {
       if (!signal) continue;
       const fp = signal.problem_fingerprint || createFingerprint(signal.problem_name);
 

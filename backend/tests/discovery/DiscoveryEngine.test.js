@@ -21,6 +21,10 @@ jest.mock('../../src/services/source_modules/SourceModuleManager', () => ({
   runDiscoveryPhase1A: jest.fn()
 }));
 
+jest.mock('../../src/services/llm/OpenAIService', () => ({
+  clusterSignals: jest.fn((signals) => Promise.resolve(signals)) // Pass-through by default
+}));
+
 describe('Discovery Utils', () => {
   it('should correctly determine triangulation status', () => {
     expect(getTriangulationStatus(new Set(['community_voice']))).toBe('watch_list');

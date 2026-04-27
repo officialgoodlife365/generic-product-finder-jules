@@ -15,6 +15,7 @@ describe('RedditModule', () => {
   });
 
   it('should scan and map results correctly', async () => {
+    // If testing without credentials, it falls back to unauthenticated API which appends &json=1
     const mockResponse = {
       data: {
         children: [
