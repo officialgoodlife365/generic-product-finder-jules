@@ -8,16 +8,56 @@ class RedditModule extends BaseSourceModule {
       category: 'community_voice',
       ...config
     });
+
+    this.userAgent = process.env.REDDIT_USER_AGENT || 'GenericProductFinder/1.0.0';
+    this.clientId = process.env.REDDIT_CLIENT_ID;
+    this.clientSecret = process.env.REDDIT_CLIENT_SECRET;
+    this.accessToken = null;
+    this.tokenExpiration = null;
+
     this.client = axios.create({
-      baseURL: 'https://www.reddit.com',
+      baseURL: 'https://oauth.reddit.com',
       timeout: 10000,
       headers: {
-        'User-Agent': 'GenericProductFinder/1.0.0'
+        'User-Agent': this.userAgent
       }
     });
   }
 
+  async authenticate() {
+    if (this.accessToken && this.tokenExpiration && Date.now() < this.tokenExpiration) {
+      return;
+    }
+
+    if (!this.clientId || !this.clientSecret) {
+      // Fallback to unauthenticated client if no credentials provided (for testing/mocking)
+      this.client.defaults.baseURL = 'https://www.reddit.com';
+      return;
+    }
+
+    try {
+      const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
+      const response = await axios.post('https://www.reddit.com/api/v1/access_token', 'grant_type=client_credentials', {
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': this.userAgent
+        }
+      });
+
+      this.accessToken = response.data.access_token;
+      this.tokenExpiration = Date.now() + (response.data.expires_in * 1000) - 60000; // 1 minute buffer
+
+      this.client.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`;
+      this.client.defaults.baseURL = 'https://oauth.reddit.com';
+    } catch (error) {
+      throw new Error(`Reddit authentication failed: ${error.message}`);
+    }
+  }
+
   async scan(niches, keywords, dateRange, options = {}) {
+    await this.authenticate();
+
     const results = [];
     const maxResults = options.max_results || 50;
 
@@ -29,9 +69,9 @@ class RedditModule extends BaseSourceModule {
       for (const niche of niches) {
         // Construct basic search query
         const query = `${niche} (${allKeywords.join(' OR ')})`;
-        const url = `/search.json?q=${encodeURIComponent(query)}&sort=relevance&t=year&limit=25`;
+        const url = `/search?q=${encodeURIComponent(query)}&sort=relevance&t=year&limit=25`;
 
-        const response = await this.client.get(url);
+        const response = await this.client.get(this.accessToken ? url : `${url}&json=1`.replace('/search?', '/search.json?'));
         const posts = response.data?.data?.children || [];
 
         for (const post of posts) {

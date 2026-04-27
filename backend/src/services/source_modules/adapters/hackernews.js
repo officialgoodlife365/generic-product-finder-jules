@@ -9,7 +9,7 @@ class HackerNewsModule extends BaseSourceModule {
       ...config
     });
     this.client = axios.create({
-      baseURL: 'https://hn.algolia.com/api/v1',
+      baseURL: 'https://hacker-news.firebaseio.com/v0',
       timeout: 10000
     });
   }
@@ -20,26 +20,38 @@ class HackerNewsModule extends BaseSourceModule {
 
     const allKeywords = [];
     Object.values(keywords).forEach(arr => allKeywords.push(...arr));
+    const searchRegex = new RegExp(`(${niches.join('|')}).*(${allKeywords.join('|')})`, 'i');
 
     try {
-      for (const niche of niches) {
-        // Query Algolia Search API for Hacker News
-        const query = `${niche} ${allKeywords.join(' OR ')}`;
-        const url = `/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=25`;
+      // The Firebase API doesn't have search, so we fetch top stories and filter them.
+      // This is less efficient than Algolia but fulfills the requirement of using the official API.
+      const topStoriesResponse = await this.client.get('/topstories.json');
+      const topStoryIds = topStoriesResponse.data || [];
 
-        const response = await this.client.get(url);
-        const hits = response.data?.hits || [];
+      // Limit the number of stories we fetch to avoid too many requests
+      const storiesToFetch = topStoryIds.slice(0, 150);
 
-        for (const hit of hits) {
-          if (results.length >= maxResults) break;
+      const storyPromises = storiesToFetch.map(id => this.client.get(`/item/${id}.json`));
+      const storyResponses = await Promise.allSettled(storyPromises);
 
-          // Basic engagement filter
-          if ((hit.points || 0) < 5) continue;
+      const stories = storyResponses
+        .filter(res => res.status === 'fulfilled' && res.value && res.value.data)
+        .map(res => res.value.data);
 
-          results.push(this.mapToSignalResult(hit, niche));
-        }
+      for (const story of stories) {
         if (results.length >= maxResults) break;
+
+        if (!story.title || (story.score || 0) < 5) continue;
+
+        const textToSearch = `${story.title} ${story.text || ''}`;
+
+        // Find if this story matches any of our niches/keywords
+        if (searchRegex.test(textToSearch)) {
+           // We just attribute to the first niche for simplicity since the regex is broad
+           results.push(this.mapToSignalResult(story, niches[0]));
+        }
       }
+
       return results;
     } catch (error) {
        if (error.response && error.response.status === 429) {
@@ -50,26 +62,27 @@ class HackerNewsModule extends BaseSourceModule {
   }
 
   mapToSignalResult(hit, niche) {
+    const createdAt = new Date(hit.time * 1000).toISOString();
     return {
-      signal_id: `hn_${hit.objectID}`,
+      signal_id: `hn_${hit.id}`,
       source_module: this.moduleName,
       source_category: this.category,
-      source_url: `https://news.ycombinator.com/item?id=${hit.objectID}`,
+      source_url: `https://news.ycombinator.com/item?id=${hit.id}`,
       problem_name: hit.title,
       problem_fingerprint: hit.title.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50),
       signal_type: 'demand', // Common for HN
-      emotional_intensity: hit.points > 100 ? 'severe' : 'medium',
-      raw_quote: hit.story_text || hit.title,
-      username: hit.author,
+      emotional_intensity: hit.score > 100 ? 'severe' : 'medium',
+      raw_quote: hit.text || hit.title,
+      username: hit.by,
       platform: 'hackernews',
       community: 'news.ycombinator.com',
       engagement_metrics: {
-        upvotes: hit.points || 0,
-        comments: hit.num_comments || 0,
+        upvotes: hit.score || 0,
+        comments: hit.descendants || 0,
         shares: 0
       },
-      engagement_score: (hit.points || 0) + (hit.num_comments || 0),
-      date_posted: hit.created_at,
+      engagement_score: (hit.score || 0) + (hit.descendants || 0),
+      date_posted: createdAt,
       freshness_weight: this.calculateFreshnessWeight(hit.created_at),
       money_signals: [],
       existing_solutions_mentioned: [],

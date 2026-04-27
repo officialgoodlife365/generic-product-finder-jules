@@ -46,10 +46,10 @@ describe('50-Bug Hardening Sweep', () => {
   });
 
   describe('Bug Group 3: DiscoveryEngine deduplicateSignals Arrays', () => {
-    it('Bug 21-25: deduplicateSignals safely continues if a rawSignal is completely empty', () => {
+    it('Bug 21-25: deduplicateSignals safely continues if a rawSignal is completely empty', async () => {
       const badSignals = [null, undefined, {}, { problem_name: null }];
 
-      const deduped = DiscoveryEngine.deduplicateSignals(badSignals);
+      const deduped = await DiscoveryEngine.deduplicateSignals(badSignals);
 
       // Should filter out completely broken objects or provide a generic unknown fingerprint
       expect(deduped.length).toBeLessThanOrEqual(badSignals.length);

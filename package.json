@@ -12,5 +12,10 @@
     "test:backend": "npm run test --workspace=backend",
     "start:frontend": "npm run dev --workspace=frontend",
     "test:frontend": "npm run test --workspace=frontend"
+  },
+  "dependencies": {
+    "google-trends-api": "^4.9.2",
+    "node-cron": "^4.2.1",
+    "openai": "^6.34.0"
   }
 }

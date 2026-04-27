@@ -5,6 +5,11 @@ const ValidationService = require('../../src/services/validation/ValidationServi
 const BlueprintGenerator = require('../../src/services/blueprints/BlueprintGenerator');
 const db = require('../../src/db');
 
+// Mock OpenAIService to pass-through signals for testing
+jest.mock('../../src/services/llm/OpenAIService', () => ({
+  clusterSignals: jest.fn((signals) => Promise.resolve(signals))
+}));
+
 // Mock out the DB calls to allow purely logical E2E tracing
 jest.mock('../../src/db', () => ({
   query: jest.fn()
@@ -68,7 +73,8 @@ describe('E2E Pipeline Integration Test', () => {
     // 6. COMMIT
     mockClient.query.mockResolvedValueOnce({});
 
-    const discoveryResults = await DiscoveryEngine.runPhase1B(DiscoveryEngine.deduplicateSignals(rawSignals));
+    const dedupedSignals = await DiscoveryEngine.deduplicateSignals(rawSignals);
+    const discoveryResults = await DiscoveryEngine.runPhase1B(dedupedSignals);
     expect(discoveryResults.length).toBe(1);
     expect(discoveryResults[0].triangulation_status).toBe('watch_list'); // Single source = watch_list
 
