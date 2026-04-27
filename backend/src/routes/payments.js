@@ -3,13 +3,58 @@ const router = express.Router();
 const db = require('../db');
 const logger = require('../utils/logger');
 const { Buffer } = require('buffer');
+const crypto = require('crypto');
 const AntiFraudEngine = require('../services/defense/AntiFraudEngine');
+
+function verifyWebhookSignature(req, rawBody) {
+  const secret = process.env.WEBHOOK_SECRET;
+  if (!secret) return false; // Fail secure if no secret configured
+
+  const stripeSignature = req.headers['stripe-signature'];
+  const lsSignature = req.headers['x-signature'];
+
+  if (stripeSignature) {
+    const parts = stripeSignature.split(',').reduce((acc, part) => {
+      const [k, v] = part.split('=');
+      acc[k] = v;
+      return acc;
+    }, {});
+
+    if (!parts.t || !parts.v1) return false;
+
+    const signedPayload = `${parts.t}.${rawBody.toString('utf8')}`;
+    const expectedSignature = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
+
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+    const actualBuffer = Buffer.from(parts.v1, 'utf8');
+
+    if (expectedBuffer.length !== actualBuffer.length) return false;
+    return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
+  } else if (lsSignature) {
+    const expectedSignature = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+    const actualBuffer = Buffer.from(lsSignature, 'utf8');
+
+    if (expectedBuffer.length !== actualBuffer.length) return false;
+    return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
+  }
+
+  return false; // Missing signature headers
+}
 
 // POST /api/payments/webhook
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   logger.info(`[Payments Webhook] Received event payload`);
 
   try {
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || '');
+
+    if (!verifyWebhookSignature(req, rawBody)) {
+      logger.error(`[Payments Webhook] Invalid signature`);
+      return res.status(401).send('Webhook Error: Invalid signature');
+    }
+
     const event = typeof req.body === 'string' || Buffer.isBuffer(req.body)
       ? JSON.parse(req.body.toString('utf8'))
       : req.body;
