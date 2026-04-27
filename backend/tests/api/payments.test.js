@@ -2,11 +2,26 @@ const request = require('supertest');
 const express = require('express');
 const paymentsRouter = require('../../src/routes/payments');
 const db = require('../../src/db');
+const crypto = require('crypto');
 
 // Mock db
 jest.mock('../../src/db', () => ({
   query: jest.fn()
 }));
+
+const WEBHOOK_SECRET = 'test_secret';
+process.env.WEBHOOK_SECRET = WEBHOOK_SECRET;
+
+function generateStripeSignature(payloadStr) {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signedPayload = `${timestamp}.${payloadStr}`;
+  const signature = crypto.createHmac('sha256', WEBHOOK_SECRET).update(signedPayload).digest('hex');
+  return `t=${timestamp},v1=${signature}`;
+}
+
+function generateLSSignature(payloadStr) {
+  return crypto.createHmac('sha256', WEBHOOK_SECRET).update(payloadStr).digest('hex');
+}
 
 const app = express();
 app.use('/payments', paymentsRouter);
@@ -35,10 +50,14 @@ describe('Payments API Webhooks', () => {
       }
     };
 
+    const payloadStr = JSON.stringify(payload);
+    const signature = generateStripeSignature(payloadStr);
+
     const response = await request(app)
       .post('/payments/webhook')
       .set('Content-Type', 'application/json')
-      .send(payload);
+      .set('stripe-signature', signature)
+      .send(payloadStr);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ received: true });
@@ -60,10 +79,14 @@ describe('Payments API Webhooks', () => {
       }
     };
 
+    const payloadStr = JSON.stringify(payload);
+    const signature = generateLSSignature(payloadStr);
+
     const response = await request(app)
       .post('/payments/webhook')
       .set('Content-Type', 'application/json')
-      .send(payload);
+      .set('x-signature', signature)
+      .send(payloadStr);
 
     expect(response.status).toBe(200);
     expect(db.query).toHaveBeenCalledWith(
@@ -84,10 +107,14 @@ describe('Payments API Webhooks', () => {
       }
     };
 
+    const payloadStr = JSON.stringify(payload);
+    const signature = generateStripeSignature(payloadStr);
+
     const response = await request(app)
       .post('/payments/webhook')
       .set('Content-Type', 'application/json')
-      .send(payload);
+      .set('stripe-signature', signature)
+      .send(payloadStr);
 
     expect(response.status).toBe(200);
     expect(db.query).toHaveBeenCalledWith(
@@ -110,21 +137,38 @@ describe('Payments API Webhooks', () => {
       }
     };
 
+    const payloadStr = JSON.stringify(payload);
+    const signature = generateStripeSignature(payloadStr);
+
     const response = await request(app)
       .post('/payments/webhook')
       .set('Content-Type', 'application/json')
-      .send(payload);
+      .set('stripe-signature', signature)
+      .send(payloadStr);
 
     expect(response.status).toBe(400);
     expect(response.text).toContain('Webhook Error: DB connection failed');
   });
 
   describe('Testing Cycle 3: Fuzzing Webhook Endpoints', () => {
-    it('gracefully handles completely empty payloads', async () => {
+    it('returns 401 on missing signature when secret is configured', async () => {
       const response = await request(app)
         .post('/payments/webhook')
         .set('Content-Type', 'application/json')
         .send({});
+
+      expect(response.status).toBe(401);
+    });
+
+    it('gracefully handles completely empty payloads', async () => {
+      const payloadStr = JSON.stringify({});
+      const signature = generateStripeSignature(payloadStr);
+
+      const response = await request(app)
+        .post('/payments/webhook')
+        .set('Content-Type', 'application/json')
+        .set('stripe-signature', signature)
+        .send(payloadStr);
 
       // Should return 200, but hit the "Unhandled event type" log branch.
       expect(response.status).toBe(200);
@@ -135,10 +179,14 @@ describe('Payments API Webhooks', () => {
       // payload missing 'data.object' structure
       const payload = { type: 'payment.completed' };
 
+      const payloadStr = JSON.stringify(payload);
+      const signature = generateStripeSignature(payloadStr);
+
       const response = await request(app)
         .post('/payments/webhook')
         .set('Content-Type', 'application/json')
-        .send(payload);
+        .set('stripe-signature', signature)
+        .send(payloadStr);
 
       // Should hit catch block or safely handle undefined chains without crashing express app
       // Because `handlePaymentCompleted` expects `event.data`, it will read undefined
@@ -147,10 +195,14 @@ describe('Payments API Webhooks', () => {
     });
 
     it('gracefully handles malformed string payloads via raw body buffer parsing', async () => {
+      const payloadStr = '{"invalid_json": true';
+      const signature = generateStripeSignature(payloadStr);
+
       const response = await request(app)
         .post('/payments/webhook')
         .set('Content-Type', 'application/json')
-        .send('{"invalid_json": true'); // Malformed JSON string
+        .set('stripe-signature', signature)
+        .send(payloadStr); // Malformed JSON string
 
       expect(response.status).toBe(400);
     });

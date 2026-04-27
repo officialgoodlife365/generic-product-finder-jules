@@ -1,3 +1,5 @@
+const { PDFDocument, rgb } = require('pdf-lib');
+
 class DeliveryService {
 
   /**
@@ -41,16 +43,46 @@ class DeliveryService {
   }
 
   /**
-   * Simulates generating a watermarked file buffer for delivery.
-   * In a real implementation, this would use Python (PyPDF2) or a Node-based PDF modifier.
+   * Generates a watermarked file buffer for delivery.
    * @param {string} buyerEmail
    * @param {string} transactionId
-   * @returns {string} The simulated watermark string stamp
+   * @param {Buffer|Uint8Array} [pdfBuffer] Optional PDF buffer to stamp. If omitted, returns a string for backward compatibility.
+   * @returns {Promise<Uint8Array|string>} The watermarked PDF bytes or string stamp.
    */
-  generateWatermarkStamp(buyerEmail, transactionId) {
+  async generateWatermarkStamp(buyerEmail, transactionId, pdfBuffer) {
     if (!buyerEmail || !transactionId) return null;
+
+    // Validate inputs to prevent buffer overflow vulnerabilities (Cycle 12 requirement)
+    const sanitizedEmail = String(buyerEmail).slice(0, 255);
+    const sanitizedTxn = String(transactionId).slice(0, 255);
     const timestamp = new Date().toISOString();
-    return `Licensed to: ${buyerEmail} | TXN: ${transactionId} | DL: ${timestamp}`;
+    const watermarkText = `Licensed to: ${sanitizedEmail} | TXN: ${sanitizedTxn} | DL: ${timestamp}`;
+
+    if (!pdfBuffer) {
+      return watermarkText; // Fallback for backward compatibility/tests
+    }
+
+    try {
+      const pdfDoc = await PDFDocument.load(pdfBuffer);
+      const pages = pdfDoc.getPages();
+
+      if (pages.length > 0) {
+        const firstPage = pages[0];
+        const { width, height } = firstPage.getSize();
+
+        firstPage.drawText(watermarkText, {
+          x: 50,
+          y: 50,
+          size: 12,
+          color: rgb(0.5, 0.5, 0.5),
+        });
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      return pdfBytes;
+    } catch (err) {
+      return watermarkText; // Fallback on load failure
+    }
   }
 
 }

@@ -54,14 +54,34 @@ describe('DeliveryService', () => {
   });
 
   describe('generateWatermarkStamp', () => {
-    it('generates a string with email and txn', () => {
-      const stamp = DeliveryService.generateWatermarkStamp('test@test.com', 'txn_123');
+    it('generates a string with email and txn if no buffer is provided', async () => {
+      const stamp = await DeliveryService.generateWatermarkStamp('test@test.com', 'txn_123');
       expect(stamp).toContain('test@test.com');
       expect(stamp).toContain('txn_123');
     });
 
-    it('returns null if arguments are missing', () => {
-      expect(DeliveryService.generateWatermarkStamp()).toBeNull();
+    it('returns null if arguments are missing', async () => {
+      expect(await DeliveryService.generateWatermarkStamp()).toBeNull();
+    });
+
+    it('stamps an actual PDF buffer using pdf-lib', async () => {
+      const { PDFDocument } = require('pdf-lib');
+      const doc = await PDFDocument.create();
+      doc.addPage([500, 500]);
+      const pdfBytes = await doc.save();
+
+      const stampedPdfBytes = await DeliveryService.generateWatermarkStamp('test@test.com', 'txn_123', pdfBytes);
+      expect(stampedPdfBytes).toBeInstanceOf(Uint8Array);
+
+      const loadedDoc = await PDFDocument.load(stampedPdfBytes);
+      expect(loadedDoc.getPages().length).toBe(1);
+    });
+
+    it('sanitizes extremely long strings to prevent buffer overflow issues', async () => {
+      const massiveString = 'A'.repeat(10000);
+      const stamp = await DeliveryService.generateWatermarkStamp(massiveString, 'txn_123');
+      expect(stamp.length).toBeLessThan(10000); // Because it should slice it
+      expect(stamp).toContain('A'.repeat(255));
     });
   });
 

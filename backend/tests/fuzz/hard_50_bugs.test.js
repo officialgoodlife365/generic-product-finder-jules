@@ -31,10 +31,19 @@ describe('Advanced Hardening & Stress Sweep (Bugs 51-100)', () => {
         }
       };
 
+      // Workaround for signature
+      const crypto = require('crypto');
+      const payloadStr = JSON.stringify(payload);
+      const secret = process.env.WEBHOOK_SECRET || 'test';
+      process.env.WEBHOOK_SECRET = secret;
+      const ts = Math.floor(Date.now() / 1000);
+      const sig = crypto.createHmac('sha256', secret).update(`${ts}.${payloadStr}`).digest('hex');
+
       const response = await request(app)
         .post('/payments/webhook')
         .set('Content-Type', 'application/json')
-        .send(payload);
+        .set('stripe-signature', `t=${ts},v1=${sig}`)
+        .send(payloadStr);
 
       // We expect the app NOT to crash natively with a TypeError / RangeError.
       // It should catch the invalid date or successfully coerce and return 200/400 smoothly.
@@ -51,10 +60,19 @@ describe('Advanced Hardening & Stress Sweep (Bugs 51-100)', () => {
           }
         }
       };
+      // Workaround for signature
+      const crypto = require('crypto');
+      const payloadStr = JSON.stringify(payload);
+      const secret = process.env.WEBHOOK_SECRET || 'test';
+      process.env.WEBHOOK_SECRET = secret;
+      const ts = Math.floor(Date.now() / 1000);
+      const sig = crypto.createHmac('sha256', secret).update(`${ts}.${payloadStr}`).digest('hex');
+
       const response = await request(app)
         .post('/payments/webhook')
         .set('Content-Type', 'application/json')
-        .send(payload);
+        .set('stripe-signature', `t=${ts},v1=${sig}`)
+        .send(payloadStr);
 
       // Should not cause unhandled promise rejection
       expect([200, 400]).toContain(response.status);
