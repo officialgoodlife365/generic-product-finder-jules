@@ -68,7 +68,6 @@ class DeliveryService {
 
       if (pages.length > 0) {
         const firstPage = pages[0];
-        const { width, height } = firstPage.getSize();
 
         firstPage.drawText(watermarkText, {
           x: 50,
@@ -80,7 +79,7 @@ class DeliveryService {
 
       const pdfBytes = await pdfDoc.save();
       return pdfBytes;
-    } catch (err) {
+    } catch {
       return watermarkText; // Fallback on load failure
     }
   }

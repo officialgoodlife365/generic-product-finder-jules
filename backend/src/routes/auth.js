@@ -71,7 +71,7 @@ router.post('/refresh', async (req, res) => {
       const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
       const newToken = jwt.sign({ id: decoded.id, email: decoded.email, role: decoded.role }, JWT_SECRET, { expiresIn: '1h' });
       res.json({ token: newToken });
-    } catch (err) {
+    } catch {
       return res.status(401).json({ message: 'Invalid token' });
     }
   } catch (error) {

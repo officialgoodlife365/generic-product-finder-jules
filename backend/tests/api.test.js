@@ -25,7 +25,7 @@ describe('API Routes', () => {
 
   describe('Implemented Endpoints', () => {
     const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_for_dev';
-    const token = jwt.sign({ id: 1, email: 'test@test.com', role: 'user' }, JWT_SECRET);
+    jwt.sign({ id: 1, email: 'test@test.com', role: 'user' }, JWT_SECRET);
 
     it('should mount /api/opportunities and require auth', async () => {
       const res = await request(app).get('/api/opportunities');
