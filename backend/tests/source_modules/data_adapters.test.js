@@ -21,7 +21,8 @@ describe('Data and Marketplace Source Modules', () => {
     // The Google Trends module was updated to fall back to a mock if google-trends-api fails or returns empty.
     // However, it doesn't return mock data exactly like this anymore. Let's mock the API module to return a consistent response.
     const googleTrends = require('google-trends-api');
-    googleTrends.interestOverTime = jest.fn().mockRejectedValue(new Error('Rate limit'));
+    googleTrends.interestOverTime = jest.fn().mockResolvedValue('{"default":{"timelineData":[{"value":[100]},{"value":[200]}]}}');
+    //googleTrends.interestOverTime = jest.fn().mockRejectedValue(new Error('Rate limit'));
 
     const module = new GoogleTrendsModule();
     const results = await module.scan(['real_estate'], {});

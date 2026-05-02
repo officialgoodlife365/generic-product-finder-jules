@@ -6,93 +6,76 @@ class GoogleTrendsModule extends BaseSourceModule {
     super({
       module_name: 'google_trends',
       category: 'search_data',
-      tier: 1,
       ...config
     });
   }
 
-  async scan(niches, keywords, dateRange, _options = {}) {
+  async scan(niches, keywords, dateRange, options = {}) {
     const results = [];
+    const maxResults = options.max_results || 50;
 
     for (const niche of niches) {
-      try {
-        const query = `${niche} software`; // Or use keywords intelligently
-        const resultString = await googleTrends.interestOverTime({keyword: query});
-        const resultData = JSON.parse(resultString);
+      if (results.length >= maxResults) break;
 
-        const timelineData = resultData?.default?.timelineData || [];
+      try {
+        const trendData = await googleTrends.interestOverTime({
+          keyword: niche,
+          startTime: dateRange?.start ? new Date(dateRange.start) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default 30 days
+        });
+
+        const parsedData = JSON.parse(trendData);
+        const timelineData = parsedData.default?.timelineData || [];
 
         if (timelineData.length > 0) {
-          // Take the most recent score
-          const latestData = timelineData[timelineData.length - 1];
-          const score = latestData.value[0] || 0;
+          // Simple rising trend calculation based on last data point vs average
+          const latestValue = timelineData[timelineData.length - 1].value[0];
+          const avgValue = timelineData.reduce((acc, curr) => acc + curr.value[0], 0) / timelineData.length;
 
-          let trendDirection = 'stable';
-          if (timelineData.length > 1) {
-             const prevScore = timelineData[timelineData.length - 2].value[0] || 0;
-             if (score > prevScore + 5) trendDirection = 'rising';
-             else if (score < prevScore - 5) trendDirection = 'falling';
-          }
-
-          // Only add if it's notable
-          if (score > 30) {
-            results.push(this.mapToSignalResult(
-              {
-                query: query,
-                trend_direction: trendDirection,
-                score: score
-              },
-              niche
-            ));
+          if (latestValue > avgValue) {
+            results.push(this.mapToSignalResult(niche, latestValue, avgValue, 'rising'));
+          } else if (latestValue < avgValue * 0.8) {
+             results.push(this.mapToSignalResult(niche, latestValue, avgValue, 'falling'));
           }
         }
-      } catch (err) {
-        // Fallback to mock logic if the API fails (e.g. rate limit, which is common without proxies)
-        results.push(this.mapToSignalResult(
-          {
-            query: `${niche} software`,
-            trend_direction: 'rising',
-            score: 85
-          },
-          niche
-        ));
+      } catch {
+         // Silently fail or log in real environment if one niche throws an error, continue to next
+         continue;
       }
     }
 
     return results;
   }
 
-  mapToSignalResult(data, niche) {
-    const now = new Date().toISOString();
-    return {
-      signal_id: `gt_${Date.now()}_${data.query.replace(/\s+/g, '_')}`,
+  mapToSignalResult(niche, latestValue, avgValue, direction) {
+     return {
+      signal_id: `gtrends_${niche.replace(/\s+/g, '_')}_${Date.now()}`,
       source_module: this.moduleName,
       source_category: this.category,
-      source_url: `https://trends.google.com/trends/explore?q=${encodeURIComponent(data.query)}`,
-      problem_name: `High search interest: ${data.query}`,
-      problem_fingerprint: data.query.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 50),
-      signal_type: 'demand',
-      emotional_intensity: 'medium',
-      raw_quote: `Google Trends indicates a ${data.trend_direction} trend.`,
-      username: 'google_trends_data',
-      platform: 'google_trends',
-      community: 'search',
+      source_url: `https://trends.google.com/trends/explore?q=${encodeURIComponent(niche)}`,
+      problem_name: `${niche} search trend`,
+      problem_fingerprint: `trend_${niche.replace(/[^a-z0-9]/gi, '_')}`.toLowerCase().substring(0, 50),
+      signal_type: 'market_shift',
+      emotional_intensity: 'low',
+      raw_quote: `Interest over time for ${niche} is ${direction}. Latest relative score: ${latestValue} vs avg ${Math.round(avgValue)}.`,
+      username: 'google_trends_bot',
+      platform: 'google',
+      community: 'global_search',
       engagement_metrics: {
-        upvotes: data.score,
+        upvotes: latestValue,
         comments: 0,
         shares: 0
       },
-      engagement_score: data.score,
-      date_posted: now,
-      freshness_weight: this.calculateFreshnessWeight(now),
+      engagement_score: latestValue,
+      date_posted: new Date().toISOString(),
+      freshness_weight: 1.0,
       money_signals: [],
       existing_solutions_mentioned: [],
       niche: niche,
-      sub_niche: 'search_intent',
+      sub_niche: 'search_trends',
       metadata: {
-        trend_direction: data.trend_direction,
-        data_point: 'trend_direction',
-        data_value: data.trend_direction
+        trend_direction: direction,
+        current_index: latestValue,
+        average_index: avgValue
       }
     };
   }

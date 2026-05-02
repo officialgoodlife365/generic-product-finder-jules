@@ -1,5 +1,6 @@
 const axios = require('axios');
 const BaseSourceModule = require('../BaseSourceModule');
+const { Buffer } = require('buffer');
 
 class RedditModule extends BaseSourceModule {
   constructor(config = {}) {
@@ -51,7 +52,9 @@ class RedditModule extends BaseSourceModule {
       this.client.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`;
       this.client.defaults.baseURL = 'https://oauth.reddit.com';
     } catch (error) {
-      throw new Error(`Reddit authentication failed: ${error.message}`);
+      const err = new Error(`Reddit authentication failed: ${error.message}`);
+      err.cause = error;
+      throw err;
     }
   }
 
