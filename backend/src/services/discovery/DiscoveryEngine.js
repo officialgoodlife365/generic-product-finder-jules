@@ -53,14 +53,12 @@ class DiscoveryEngine {
     const clusteredSignals = await OpenAIService.clusterSignals(rawSignals);
 
     // 2. Standard Grouping logic
-    const grouped = new Map();
-
-    for (const signal of clusteredSignals) {
-      if (!signal) continue;
+    const grouped = clusteredSignals.reduce((acc, signal) => {
+      if (!signal) return acc;
       const fp = signal.problem_fingerprint || createFingerprint(signal.problem_name);
 
-      if (!grouped.has(fp)) {
-        grouped.set(fp, {
+      if (!acc[fp]) {
+        acc[fp] = {
           fingerprint: fp,
           name: signal.problem_name,
           niche: signal.niche,
@@ -73,9 +71,9 @@ class DiscoveryEngine {
           source_urls: [signal.source_url],
           money_signals: [...(signal.money_signals || [])],
           raw_signals: [signal] // Keep references to raw signals for lead generation
-        });
+        };
       } else {
-        const existing = grouped.get(fp);
+        const existing = acc[fp];
         existing.categories_hit.add(signal.source_category);
         existing.total_engagement += (signal.engagement_score || 0);
         existing.max_freshness = Math.max(existing.max_freshness, signal.freshness_weight || 1.0);
@@ -90,9 +88,10 @@ class DiscoveryEngine {
 
         existing.raw_signals.push(signal);
       }
-    }
+      return acc;
+    }, {});
 
-    return Array.from(grouped.values());
+    return Object.values(grouped);
   }
 
   /**

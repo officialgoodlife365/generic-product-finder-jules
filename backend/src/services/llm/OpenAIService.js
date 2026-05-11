@@ -71,15 +71,15 @@ Return ONLY valid JSON, nothing else. Format:
       const clusters = parsed.clusters || [];
 
       // Create a map for quick lookup
-      const clusterMap = new Map();
-      for (const item of clusters) {
-        clusterMap.set(item.id, item);
-      }
+      const clusterMap = clusters.reduce((acc, item) => {
+        acc[item.id] = item;
+        return acc;
+      }, {});
 
       // Apply clusters back to the raw signals
       return rawSignals.map(signal => {
         if (!signal) return signal;
-        const mapped = clusterMap.get(signal.signal_id);
+        const mapped = clusterMap[signal.signal_id];
         if (mapped) {
           signal.problem_name = mapped.unified_problem_name;
           signal.problem_fingerprint = mapped.unified_fingerprint;
