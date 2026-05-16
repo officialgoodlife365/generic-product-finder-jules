@@ -1,8 +1,15 @@
 const AntiFraudEngine = require('../../src/services/defense/AntiFraudEngine');
 const db = require('../../src/db');
+const logger = require('../../src/utils/logger');
 
 jest.mock('../../src/db', () => ({
   query: jest.fn()
+}));
+
+jest.mock('../../src/utils/logger', () => ({
+  warn: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn()
 }));
 
 describe('AntiFraudEngine', () => {
@@ -73,6 +80,23 @@ describe('AntiFraudEngine', () => {
       expect(res.alertLevel).toBe(3);
       expect(res.autoAction).toBe('suspended');
       expect(db.query).toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('t***t@test.com'));
+    });
+  });
+
+  describe('logFraudEvent', () => {
+    it('sanitizes PII in details object before saving', async () => {
+      const details = {
+        buyerEmail: 'sensitive@example.com',
+        count: 5
+      };
+      await AntiFraudEngine.logFraudEvent('user@example.com', 'test_event', 1, 'none', details);
+
+      const lastQueryArgs = db.query.mock.calls[0][1];
+      const savedDetails = JSON.parse(lastQueryArgs[4]);
+
+      expect(savedDetails.buyerEmail).toBe('s***e@example.com');
+      expect(savedDetails.count).toBe(5);
     });
   });
 

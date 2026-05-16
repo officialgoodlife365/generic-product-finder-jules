@@ -1,5 +1,6 @@
 const db = require('../../db');
 const logger = require('../../utils/logger');
+const { maskEmail, sanitizeObject } = require('../../utils/pii');
 
 class AntiFraudEngine {
 
@@ -25,7 +26,7 @@ class AntiFraudEngine {
 
     if (alertLevel > 0) {
       await this.logFraudEvent(buyerEmail, 'bulk_download', alertLevel, autoAction, { count: recentDownloadCount });
-      logger.warn(`[AntiFraud] Bulk download detected for ${buyerEmail}. Level: ${alertLevel}`);
+      logger.warn(`[AntiFraud] Bulk download detected for ${maskEmail(buyerEmail)}. Level: ${alertLevel}`);
       return { flagged: true, alertLevel, autoAction };
     }
 
@@ -52,7 +53,7 @@ class AntiFraudEngine {
 
     if (alertLevel > 0) {
       await this.logFraudEvent(buyerEmail, 'multi_ip', alertLevel, autoAction, { ips: uniqueIpsIn24Hours });
-      logger.warn(`[AntiFraud] Suspicious logins for ${buyerEmail} from ${uniqueIpsIn24Hours} IPs.`);
+      logger.warn(`[AntiFraud] Suspicious logins for ${maskEmail(buyerEmail)} from ${uniqueIpsIn24Hours} IPs.`);
       return { flagged: true, alertLevel, autoAction };
     }
 
@@ -90,7 +91,7 @@ class AntiFraudEngine {
 
     if (alertLevel > 0) {
       await this.logFraudEvent(buyerEmail, 'serial_refund', alertLevel, autoAction, { priorRefunds: count });
-      logger.warn(`[AntiFraud] Serial refunder detected: ${buyerEmail} (${count} refunds).`);
+      logger.warn(`[AntiFraud] Serial refunder detected: ${maskEmail(buyerEmail)} (${count} refunds).`);
       return { flagged: true, alertLevel, autoAction };
     }
 
@@ -102,7 +103,7 @@ class AntiFraudEngine {
    * Called via webhook when a dispute is filed.
    */
   async handleChargeback(buyerEmail, txnId) {
-    logger.error(`[AntiFraud] Chargeback filed by ${buyerEmail} for TXN ${txnId}. Suspending access immediately.`);
+    logger.error(`[AntiFraud] Chargeback filed by ${maskEmail(buyerEmail)} for TXN ${txnId}. Suspending access immediately.`);
     await this.logFraudEvent(buyerEmail, 'chargeback', 3, 'suspended', { txnId });
 
     // In a real system, we'd also disable the user's portal access flag here.
@@ -110,10 +111,11 @@ class AntiFraudEngine {
   }
 
   async logFraudEvent(buyerEmail, eventType, alertLevel, autoAction, details) {
+    const sanitizedDetails = sanitizeObject(details);
     await db.query(`
       INSERT INTO fraud_events (buyer_email, event_type, alert_level, auto_action, details)
       VALUES ($1, $2, $3, $4, $5)
-    `, [buyerEmail, eventType, alertLevel, autoAction, JSON.stringify(details)]);
+    `, [buyerEmail, eventType, alertLevel, autoAction, JSON.stringify(sanitizedDetails)]);
   }
 
 }
